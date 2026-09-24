@@ -2,9 +2,10 @@
 
 CREATE TABLE IF NOT EXISTS trips (
     id TEXT PRIMARY KEY,
+    title TEXT,
     destination TEXT NOT NULL,
-    start_date TEXT NOT NULL,
-    end_date TEXT NOT NULL,
+    start_date TEXT,
+    end_date TEXT,
     duration INTEGER NOT NULL,
     budget REAL NOT NULL,
     currency TEXT DEFAULT '$',
@@ -13,6 +14,8 @@ CREATE TABLE IF NOT EXISTS trips (
     travel_style TEXT,
     accommodation TEXT,
     pace TEXT,
+    cover_img TEXT,
+    status TEXT DEFAULT 'Upcoming',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -22,9 +25,12 @@ CREATE TABLE IF NOT EXISTS itinerary (
     day_number INTEGER NOT NULL,
     city TEXT NOT NULL,
     hotel TEXT,
+    photo TEXT,
+    photo_caption TEXT,
     morning_activity TEXT,
     afternoon_activity TEXT,
     evening_activity TEXT,
+    tips TEXT,
     FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
 );
 

@@ -304,22 +304,74 @@ const destinationsData = [
   }
 ];
 
-// ==========================================
-// DATABASE PERSISTENCE LAYER (IndexedDB)
-// ==========================================
+const API_BASE = (window.location.origin && window.location.origin.includes(':5000'))
+  ? '/api'
+  : 'http://localhost:5000/api';
 
 async function initDatabase() {
   try {
-    await openDatabase();
+    // 1. Fetch from Backend SQLite API
+    const tripsRes = await fetch(`${API_BASE}/trips`);
+    if (tripsRes.ok) {
+      const backendTrips = await tripsRes.json();
+      if (backendTrips && backendTrips.length > 0) {
+        mySavedTrips = backendTrips.map(t => ({
+          id: t.id,
+          title: t.title || `${t.duration}-Day ${t.destination.split(',')[0]} Getaway`,
+          destination: t.destination,
+          dates: `${t.start_date} - ${t.end_date}`,
+          duration: `${t.duration} Days`,
+          travellers: `${t.travellers_count} (${t.travellers_type})`,
+          style: t.travel_style,
+          status: t.status || 'Upcoming',
+          coverImg: t.cover_img || getDestinationImage(t.destination),
+          budget: t.budget,
+          currency: t.currency || '$',
+          accommodation: t.accommodation,
+          pace: t.pace
+        }));
 
-    // Check if trips exist in DB
+        const activeId = mySavedTrips[0].id;
+        const detailRes = await fetch(`${API_BASE}/trips/${activeId}`);
+        if (detailRes.ok) {
+          const detail = await detailRes.json();
+          const t = detail.trip;
+          currentTrip.id = t.id;
+          currentTrip.destination = t.destination;
+          currentTrip.title = t.title;
+          currentTrip.dates = `${t.start_date} - ${t.end_date}`;
+          currentTrip.duration = t.duration;
+          currentTrip.budget = t.budget;
+          activeCurrency = t.currency || '$';
+          currentTrip.travellerCount = t.travellers_count;
+          currentTrip.travellerType = t.travellers_type;
+          currentTrip.travelStyle = t.travel_style;
+          currentTrip.accommodation = t.accommodation;
+          currentTrip.pace = t.pace;
+
+          if (detail.itinerary && detail.itinerary.length > 0) {
+            currentTrip.days = detail.itinerary;
+          }
+          if (detail.packing && detail.packing.length > 0) {
+            packingItems = detail.packing;
+          }
+          if (detail.budget && detail.budget.length > 0) {
+            budgetExpenses = detail.budget;
+          }
+          return;
+        }
+      }
+    }
+  } catch (backendErr) {
+    console.warn("Backend not yet connected or offline, fallback to IndexedDB:", backendErr);
+  }
+
+  // Fallback to IndexedDB
+  try {
+    await openDatabase();
     const savedTripsFromDb = await dbGetAll('trips');
     if (!savedTripsFromDb || savedTripsFromDb.length === 0) {
-      // Seed initial trips
-      for (const trip of mySavedTrips) {
-        await dbPut('trips', trip);
-      }
-      // Seed initial itinerary days
+      for (const trip of mySavedTrips) await dbPut('trips', trip);
       for (const day of currentTrip.days) {
         await dbPut('itinerary', {
           id: `itin-trip-kyoto-${day.dayNumber}`,
@@ -335,44 +387,21 @@ async function initDatabase() {
           tips: day.tips
         });
       }
-      // Seed initial packing items
-      for (const item of packingItems) {
-        await dbPut('packing', item);
-      }
-      // Seed initial budget items
-      for (const exp of budgetExpenses) {
-        await dbPut('budget', exp);
-      }
+      for (const item of packingItems) await dbPut('packing', item);
+      for (const exp of budgetExpenses) await dbPut('budget', exp);
     } else {
-      // Load saved trips from DB
       mySavedTrips = savedTripsFromDb;
-
-      // Load itinerary for active trip
       const storedItinerary = await dbGetByTripId('itinerary', currentTrip.id);
       if (storedItinerary && storedItinerary.length > 0) {
         currentTrip.days = storedItinerary.sort((a, b) => a.dayNumber - b.dayNumber);
       }
-
-      // Load packing items
       const storedPacking = await dbGetByTripId('packing', currentTrip.id);
-      if (storedPacking && storedPacking.length > 0) {
-        packingItems = storedPacking;
-      } else {
-        const allPacking = await dbGetAll('packing');
-        if (allPacking.length > 0) packingItems = allPacking;
-      }
-
-      // Load budget items
+      if (storedPacking && storedPacking.length > 0) packingItems = storedPacking;
       const storedBudget = await dbGetByTripId('budget', currentTrip.id);
-      if (storedBudget && storedBudget.length > 0) {
-        budgetExpenses = storedBudget;
-      } else {
-        const allBudget = await dbGetAll('budget');
-        if (allBudget.length > 0) budgetExpenses = allBudget;
-      }
+      if (storedBudget && storedBudget.length > 0) budgetExpenses = storedBudget;
     }
   } catch (err) {
-    console.warn("Database initialization notice:", err);
+    console.warn("Local database fallback:", err);
   }
 }
 
@@ -581,7 +610,30 @@ function handleTripPlannerSubmit(e) {
   mySavedTrips.unshift(newTripRecord);
   renderMyTrips('all');
 
-  // Persist to Database
+  // Persist to Backend API & Database
+  fetch(`${API_BASE}/trips`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: newTripId,
+      title: currentTrip.title,
+      destination: destination,
+      start_date: formatDateDisplay(departDateVal),
+      end_date: formatDateDisplay(returnDateVal),
+      duration: daysCount,
+      budget: budget,
+      currency: currency,
+      travellers_type: travellerType,
+      travellers_count: travellerCount,
+      travel_style: travelStyle,
+      accommodation: accommodation,
+      pace: pace,
+      cover_img: getDestinationImage(destination),
+      status: "Upcoming",
+      itinerary: generatedDays
+    })
+  }).catch(err => console.warn("Backend save notice:", err));
+
   dbPut('trips', newTripRecord);
   for (const day of generatedDays) {
     dbPut('itinerary', {
@@ -831,6 +883,11 @@ function togglePackingItem(id) {
   const item = packingItems.find(i => i.id === id);
   if (item) {
     item.checked = !item.checked;
+    fetch(`${API_BASE}/trips/${currentTrip.id || 'trip-kyoto'}/packing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    }).catch(e => console.warn(e));
     dbPut('packing', item);
     renderPackingList();
   }
@@ -838,6 +895,7 @@ function togglePackingItem(id) {
 
 function deletePackingItem(id) {
   packingItems = packingItems.filter(i => i.id !== id);
+  fetch(`${API_BASE}/packing/${id}`, { method: 'DELETE' }).catch(e => console.warn(e));
   dbDelete('packing', id);
   renderPackingList();
   showToast("Item removed from suitcase! 🧳");
@@ -854,7 +912,7 @@ function addNewPackingItem() {
   }
 
   const newItem = {
-    id: Date.now(),
+    id: 'pack-' + Date.now(),
     trip_id: currentTrip.id || 'trip-kyoto',
     text: text,
     category: catSelect.value,
@@ -862,6 +920,11 @@ function addNewPackingItem() {
   };
 
   packingItems.push(newItem);
+  fetch(`${API_BASE}/trips/${newItem.trip_id}/packing`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(newItem)
+  }).catch(e => console.warn(e));
   dbPut('packing', newItem);
 
   input.value = '';
@@ -954,7 +1017,7 @@ function addCustomExpense() {
   }
 
   const newExp = {
-    id: Date.now(),
+    id: 'budget-' + Date.now(),
     trip_id: currentTrip.id || 'trip-kyoto',
     name: name,
     amount: amount,
@@ -962,6 +1025,11 @@ function addCustomExpense() {
   };
 
   budgetExpenses.unshift(newExp);
+  fetch(`${API_BASE}/trips/${newExp.trip_id}/budget`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(newExp)
+  }).catch(e => console.warn(e));
   dbPut('budget', newExp);
 
   nameInput.value = '';
@@ -973,6 +1041,7 @@ function addCustomExpense() {
 
 function deleteExpense(id) {
   budgetExpenses = budgetExpenses.filter(e => e.id !== id);
+  fetch(`${API_BASE}/budget/${id}`, { method: 'DELETE' }).catch(e => console.warn(e));
   dbDelete('budget', id);
   recalculateBudget();
   showToast("Expense removed 🪙");
@@ -1017,8 +1086,11 @@ function renderMyTrips(filter) {
           <span>👥 ${trip.travellers}</span>
         </div>
         <div class="trip-card-footer">
-          <span style="font-size:0.85rem; font-weight:700; color:var(--ink-light);">#TravelNotebook</span>
-          <button class="btn btn-secondary btn-sm" onclick="loadSavedTrip('${trip.id}')">View Itinerary 📖</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadSavedTrip('${trip.id}')">View 📖</button>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm" style="background:var(--pastel-yellow); padding:6px 10px;" onclick="editTripPrompt('${trip.id}')" title="Edit Trip">✏️</button>
+            <button class="btn btn-sm" style="background:var(--pastel-pink); padding:6px 10px;" onclick="deleteTrip('${trip.id}')" title="Delete Trip">🗑️</button>
+          </div>
         </div>
       </div>
     `;
@@ -1027,6 +1099,45 @@ function renderMyTrips(filter) {
 }
 
 async function loadSavedTrip(tripId) {
+  try {
+    const res = await fetch(`${API_BASE}/trips/${tripId}`);
+    if (res.ok) {
+      const data = await res.json();
+      const t = data.trip;
+      currentTrip.id = t.id;
+      currentTrip.destination = t.destination;
+      currentTrip.title = t.title;
+      currentTrip.dates = `${t.start_date} - ${t.end_date}`;
+      currentTrip.duration = t.duration;
+      currentTrip.budget = t.budget;
+      activeCurrency = t.currency || '$';
+      currentTrip.travellerCount = t.travellers_count;
+      currentTrip.travellerType = t.travellers_type;
+      currentTrip.travelStyle = t.travel_style;
+      currentTrip.accommodation = t.accommodation;
+      currentTrip.pace = t.pace;
+
+      if (data.itinerary && data.itinerary.length > 0) {
+        currentTrip.days = data.itinerary;
+      }
+      if (data.packing && data.packing.length > 0) {
+        packingItems = data.packing;
+        renderPackingList();
+      }
+      if (data.budget && data.budget.length > 0) {
+        budgetExpenses = data.budget;
+        recalculateBudget();
+      }
+
+      renderItinerary();
+      navigateTo('itinerary');
+      showToast(`Loaded journal for ${t.destination}! 🌸`);
+      return;
+    }
+  } catch (e) {
+    console.warn("Backend fetch failed, using local trip:", e);
+  }
+
   const trip = mySavedTrips.find(t => t.id === tripId);
   if (trip) {
     currentTrip.id = trip.id;
@@ -1047,6 +1158,48 @@ async function loadSavedTrip(tripId) {
     navigateTo('itinerary');
     showToast(`Loaded journal for ${trip.destination}! 🌸`);
   }
+}
+
+async function editTripPrompt(tripId) {
+  const trip = mySavedTrips.find(t => t.id === tripId) || currentTrip;
+  const newTitle = prompt("✏️ Edit trip title:", trip.title);
+  if (!newTitle) return;
+  const newBudget = prompt("🪙 Edit trip budget:", trip.budget || 2000);
+  const updatedData = { title: newTitle, budget: parseFloat(newBudget) || trip.budget };
+
+  try {
+    await fetch(`${API_BASE}/trips/${tripId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedData)
+    });
+  } catch (e) {}
+
+  trip.title = newTitle;
+  if (trip.budget) trip.budget = updatedData.budget;
+  if (currentTrip.id === tripId) {
+    currentTrip.title = newTitle;
+    currentTrip.budget = updatedData.budget;
+    document.getElementById('itineraryTitle').textContent = newTitle;
+    document.getElementById('metricTotalBudget').textContent = `${activeCurrency}${updatedData.budget.toLocaleString()}`;
+    recalculateBudget();
+  }
+  renderMyTrips('all');
+  showToast("✨ Trip details updated!");
+}
+
+async function deleteTrip(tripId) {
+  if (!confirm("Are you sure you want to delete this trip journal? 🌸")) return;
+  try {
+    await fetch(`${API_BASE}/trips/${tripId}`, { method: 'DELETE' });
+  } catch (e) {}
+  dbDelete('trips', tripId);
+  mySavedTrips = mySavedTrips.filter(t => t.id !== tripId);
+  if (currentTrip.id === tripId && mySavedTrips.length > 0) {
+    loadSavedTrip(mySavedTrips[0].id);
+  }
+  renderMyTrips('all');
+  showToast("Trip removed from your scrapbook 🗑️");
 }
 
 // ==========================================
