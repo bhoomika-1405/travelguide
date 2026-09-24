@@ -10,6 +10,7 @@
 let activeCurrency = "$";
 
 let currentTrip = {
+  id: "trip-kyoto",
   destination: "Kyoto & Osaka, Japan",
   title: "5-Day Blossoms & Temples Voyage",
   dates: "Oct 12 - Oct 17, 2026",
@@ -172,34 +173,34 @@ let currentTrip = {
 
 // Packing List Data
 let packingItems = [
-  { id: 1, text: "Passport & flight e-tickets", category: "essentials", checked: true },
-  { id: 2, text: "Travel insurance card", category: "essentials", checked: true },
-  { id: 3, text: "Wallet, cash & foreign cards", category: "essentials", checked: true },
-  { id: 4, text: "Comfortable walking sneakers", category: "clothing", checked: true },
-  { id: 5, text: "Light pastel cardigan / jacket", category: "clothing", checked: true },
-  { id: 6, text: "Slip-on socks for temple floors", category: "clothing", checked: false },
-  { id: 7, text: "Cute day dresses / comfy linen shirts", category: "clothing", checked: false },
-  { id: 8, text: "Travel sunscreen & lip balm", category: "toiletries", checked: true },
-  { id: 9, text: "Pocket wet wipes & sanitizer", category: "toiletries", checked: false },
-  { id: 10, text: "Mini first-aid & headache meds", category: "toiletries", checked: true },
-  { id: 11, text: "Camera & extra memory card", category: "electronics", checked: false },
-  { id: 12, text: "Pocket Wi-Fi / eSIM QR code", category: "electronics", checked: true },
-  { id: 13, text: "Universal power plug adapter", category: "electronics", checked: true },
-  { id: 14, text: "Portable power bank 10,000mAh", category: "electronics", checked: false },
-  { id: 15, text: "Travel scrapbook notebook & glue pen", category: "scrapbook", checked: true },
-  { id: 16, text: "Cute washi tapes & colored pens", category: "scrapbook", checked: false },
-  { id: 17, text: "Foldable tote bag for souvenirs", category: "scrapbook", checked: false }
+  { id: 1, trip_id: "trip-kyoto", text: "Passport & flight e-tickets", category: "essentials", checked: true },
+  { id: 2, trip_id: "trip-kyoto", text: "Travel insurance card", category: "essentials", checked: true },
+  { id: 3, trip_id: "trip-kyoto", text: "Wallet, cash & foreign cards", category: "essentials", checked: true },
+  { id: 4, trip_id: "trip-kyoto", text: "Comfortable walking sneakers", category: "clothing", checked: true },
+  { id: 5, trip_id: "trip-kyoto", text: "Light pastel cardigan / jacket", category: "clothing", checked: true },
+  { id: 6, trip_id: "trip-kyoto", text: "Slip-on socks for temple floors", category: "clothing", checked: false },
+  { id: 7, trip_id: "trip-kyoto", text: "Cute day dresses / comfy linen shirts", category: "clothing", checked: false },
+  { id: 8, trip_id: "trip-kyoto", text: "Travel sunscreen & lip balm", category: "toiletries", checked: true },
+  { id: 9, trip_id: "trip-kyoto", text: "Pocket wet wipes & sanitizer", category: "toiletries", checked: false },
+  { id: 10, trip_id: "trip-kyoto", text: "Mini first-aid & headache meds", category: "toiletries", checked: true },
+  { id: 11, trip_id: "trip-kyoto", text: "Camera & extra memory card", category: "electronics", checked: false },
+  { id: 12, trip_id: "trip-kyoto", text: "Pocket Wi-Fi / eSIM QR code", category: "electronics", checked: true },
+  { id: 13, trip_id: "trip-kyoto", text: "Universal power plug adapter", category: "electronics", checked: true },
+  { id: 14, trip_id: "trip-kyoto", text: "Portable power bank 10,000mAh", category: "electronics", checked: false },
+  { id: 15, trip_id: "trip-kyoto", text: "Travel scrapbook notebook & glue pen", category: "scrapbook", checked: true },
+  { id: 16, trip_id: "trip-kyoto", text: "Cute washi tapes & colored pens", category: "scrapbook", checked: false },
+  { id: 17, trip_id: "trip-kyoto", text: "Foldable tote bag for souvenirs", category: "scrapbook", checked: false }
 ];
 
 // Budget Items Data
 let budgetExpenses = [
-  { id: 1, name: "Kyoto Ryokan 3 Nights (Boutique)", amount: 720, category: "Accommodation" },
-  { id: 2, name: "Osaka Hotel 2 Nights", amount: 340, category: "Accommodation" },
-  { id: 3, name: "JR Shinkansen & Transit Cards", amount: 210, category: "Transport" },
-  { id: 4, name: "Matcha Tea & Kaiseki Dinner Experience", amount: 160, category: "Food & Drinks" },
-  { id: 5, name: "Street Food & Dotonbori Treats", amount: 95, category: "Food & Drinks" },
-  { id: 6, name: "Temple Tickets & Castle Entry Passes", amount: 45, category: "Activities" },
-  { id: 7, name: "Ceramics & Scrapbook Stationery", amount: 70, category: "Shopping & Souvenirs" }
+  { id: 1, trip_id: "trip-kyoto", name: "Kyoto Ryokan 3 Nights (Boutique)", amount: 720, category: "Accommodation" },
+  { id: 2, trip_id: "trip-kyoto", name: "Osaka Hotel 2 Nights", amount: 340, category: "Accommodation" },
+  { id: 3, trip_id: "trip-kyoto", name: "JR Shinkansen & Transit Cards", amount: 210, category: "Transport" },
+  { id: 4, trip_id: "trip-kyoto", name: "Matcha Tea & Kaiseki Dinner Experience", amount: 160, category: "Food & Drinks" },
+  { id: 5, trip_id: "trip-kyoto", name: "Street Food & Dotonbori Treats", amount: 95, category: "Food & Drinks" },
+  { id: 6, trip_id: "trip-kyoto", name: "Temple Tickets & Castle Entry Passes", amount: 45, category: "Activities" },
+  { id: 7, trip_id: "trip-kyoto", name: "Ceramics & Scrapbook Stationery", amount: 70, category: "Shopping & Souvenirs" }
 ];
 
 // My Saved Trips Data
@@ -304,6 +305,78 @@ const destinationsData = [
 ];
 
 // ==========================================
+// DATABASE PERSISTENCE LAYER (IndexedDB)
+// ==========================================
+
+async function initDatabase() {
+  try {
+    await openDatabase();
+
+    // Check if trips exist in DB
+    const savedTripsFromDb = await dbGetAll('trips');
+    if (!savedTripsFromDb || savedTripsFromDb.length === 0) {
+      // Seed initial trips
+      for (const trip of mySavedTrips) {
+        await dbPut('trips', trip);
+      }
+      // Seed initial itinerary days
+      for (const day of currentTrip.days) {
+        await dbPut('itinerary', {
+          id: `itin-trip-kyoto-${day.dayNumber}`,
+          trip_id: 'trip-kyoto',
+          dayNumber: day.dayNumber,
+          city: day.city,
+          hotel: day.hotel,
+          photo: day.photo,
+          photoCaption: day.photoCaption,
+          morning: day.morning,
+          afternoon: day.afternoon,
+          evening: day.evening,
+          tips: day.tips
+        });
+      }
+      // Seed initial packing items
+      for (const item of packingItems) {
+        await dbPut('packing', item);
+      }
+      // Seed initial budget items
+      for (const exp of budgetExpenses) {
+        await dbPut('budget', exp);
+      }
+    } else {
+      // Load saved trips from DB
+      mySavedTrips = savedTripsFromDb;
+
+      // Load itinerary for active trip
+      const storedItinerary = await dbGetByTripId('itinerary', currentTrip.id);
+      if (storedItinerary && storedItinerary.length > 0) {
+        currentTrip.days = storedItinerary.sort((a, b) => a.dayNumber - b.dayNumber);
+      }
+
+      // Load packing items
+      const storedPacking = await dbGetByTripId('packing', currentTrip.id);
+      if (storedPacking && storedPacking.length > 0) {
+        packingItems = storedPacking;
+      } else {
+        const allPacking = await dbGetAll('packing');
+        if (allPacking.length > 0) packingItems = allPacking;
+      }
+
+      // Load budget items
+      const storedBudget = await dbGetByTripId('budget', currentTrip.id);
+      if (storedBudget && storedBudget.length > 0) {
+        budgetExpenses = storedBudget;
+      } else {
+        const allBudget = await dbGetAll('budget');
+        if (allBudget.length > 0) budgetExpenses = allBudget;
+      }
+    }
+  } catch (err) {
+    console.warn("Database initialization notice:", err);
+  }
+}
+
+// ==========================================
 // 2. ROUTING & NAVIGATION
 // ==========================================
 
@@ -352,12 +425,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Setup Travel Style Pill Click handlers
   setupStylePills();
 
-  // Render initial components
-  renderItinerary();
-  renderPackingList();
-  renderBudget();
-  renderMyTrips('all');
-  renderDestinations('all');
+  // Initialize Database
+  initDatabase().then(() => {
+    // Render initial components from persistent database
+    renderItinerary();
+    renderPackingList();
+    renderBudget();
+    renderMyTrips('all');
+    renderDestinations('all');
+  });
 
   // Trip planner form submission
   document.getElementById('tripPlannerForm').addEventListener('submit', handleTripPlannerSubmit);
@@ -462,8 +538,11 @@ function handleTripPlannerSubmit(e) {
   // Generate dynamic days itinerary
   const generatedDays = generateDaysForTrip(destination, daysCount, accommodation, travelStyle);
 
+  const newTripId = 'trip-' + Date.now();
+
   // Update currentTrip state
   currentTrip = {
+    id: newTripId,
     destination: destination,
     title: `${daysCount}-Day ${destination.split(',')[0]} Getaway`,
     dates: `${formatDateDisplay(departDateVal)} - ${formatDateDisplay(returnDateVal)}`,
@@ -486,7 +565,7 @@ function handleTripPlannerSubmit(e) {
 
   // Save to My Trips
   const newTripRecord = {
-    id: 'trip-' + Date.now(),
+    id: newTripId,
     title: currentTrip.title,
     destination: destination,
     dates: currentTrip.dates,
@@ -494,10 +573,31 @@ function handleTripPlannerSubmit(e) {
     travellers: `${travellerCount} (${travellerType})`,
     style: travelStyle,
     status: "Upcoming",
-    coverImg: getDestinationImage(destination)
+    coverImg: getDestinationImage(destination),
+    budget: budget,
+    accommodation: accommodation,
+    pace: pace
   };
   mySavedTrips.unshift(newTripRecord);
   renderMyTrips('all');
+
+  // Persist to Database
+  dbPut('trips', newTripRecord);
+  for (const day of generatedDays) {
+    dbPut('itinerary', {
+      id: `itin-${newTripId}-${day.dayNumber}`,
+      trip_id: newTripId,
+      dayNumber: day.dayNumber,
+      city: day.city,
+      hotel: day.hotel,
+      photo: day.photo,
+      photoCaption: day.photoCaption,
+      morning: day.morning,
+      afternoon: day.afternoon,
+      evening: day.evening,
+      tips: day.tips
+    });
+  }
 
   showToast(`✨ Generated ${daysCount}-day itinerary for ${destination}!`);
   navigateTo('itinerary');
@@ -731,12 +831,14 @@ function togglePackingItem(id) {
   const item = packingItems.find(i => i.id === id);
   if (item) {
     item.checked = !item.checked;
+    dbPut('packing', item);
     renderPackingList();
   }
 }
 
 function deletePackingItem(id) {
   packingItems = packingItems.filter(i => i.id !== id);
+  dbDelete('packing', id);
   renderPackingList();
   showToast("Item removed from suitcase! 🧳");
 }
@@ -751,12 +853,16 @@ function addNewPackingItem() {
     return;
   }
 
-  packingItems.push({
+  const newItem = {
     id: Date.now(),
+    trip_id: currentTrip.id || 'trip-kyoto',
     text: text,
     category: catSelect.value,
     checked: false
-  });
+  };
+
+  packingItems.push(newItem);
+  dbPut('packing', newItem);
 
   input.value = '';
   renderPackingList();
@@ -847,12 +953,16 @@ function addCustomExpense() {
     return;
   }
 
-  budgetExpenses.unshift({
+  const newExp = {
     id: Date.now(),
+    trip_id: currentTrip.id || 'trip-kyoto',
     name: name,
     amount: amount,
     category: catInput.value
-  });
+  };
+
+  budgetExpenses.unshift(newExp);
+  dbPut('budget', newExp);
 
   nameInput.value = '';
   amountInput.value = '';
@@ -863,6 +973,7 @@ function addCustomExpense() {
 
 function deleteExpense(id) {
   budgetExpenses = budgetExpenses.filter(e => e.id !== id);
+  dbDelete('budget', id);
   recalculateBudget();
   showToast("Expense removed 🪙");
 }
@@ -915,13 +1026,23 @@ function renderMyTrips(filter) {
   });
 }
 
-function loadSavedTrip(tripId) {
+async function loadSavedTrip(tripId) {
   const trip = mySavedTrips.find(t => t.id === tripId);
   if (trip) {
+    currentTrip.id = trip.id;
     currentTrip.destination = trip.destination;
     currentTrip.title = trip.title;
     currentTrip.dates = trip.dates;
     currentTrip.travelStyle = trip.style;
+    currentTrip.duration = parseInt(trip.duration) || 5;
+
+    try {
+      const storedItin = await dbGetByTripId('itinerary', tripId);
+      if (storedItin && storedItin.length > 0) {
+        currentTrip.days = storedItin.sort((a, b) => a.dayNumber - b.dayNumber);
+      }
+    } catch (e) {}
+
     renderItinerary();
     navigateTo('itinerary');
     showToast(`Loaded journal for ${trip.destination}! 🌸`);
